@@ -1,0 +1,135 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  MANAGER
+  TENANT
+}
+
+enum UnitStatus {
+  VACANT
+  OCCUPIED
+}
+
+enum LeaseStatus {
+  ACTIVE
+  ENDED
+  PENDING
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum RequestStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(TENANT)
+  createdAt    DateTime @default(now())
+  tenant       Tenant?
+}
+
+model Property {
+  id           String   @id @default(cuid())
+  name         String
+  address      String
+  city         String
+  state        String
+  zip          String
+  propertyType String
+  createdAt    DateTime @default(now())
+  units        Unit[]
+}
+
+model Unit {
+  id          String     @id @default(cuid())
+  propertyId  String
+  property    Property   @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  unitNumber  String
+  bedrooms    Int
+  bathrooms   Decimal    @db.Decimal(3, 1)
+  monthlyRent Decimal    @db.Decimal(10, 2)
+  status      UnitStatus @default(VACANT)
+  leases      Lease[]
+  requests    MaintenanceRequest[]
+
+  @@unique([propertyId, unitNumber])
+  @@index([status])
+}
+
+model Tenant {
+  id       String   @id @default(cuid())
+  userId   String   @unique
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phone    String?
+  leases   Lease[]
+  requests MaintenanceRequest[]
+}
+
+model Lease {
+  id              String      @id @default(cuid())
+  tenantId        String
+  tenant          Tenant      @relation(fields: [tenantId], references: [id])
+  unitId          String
+  unit            Unit        @relation(fields: [unitId], references: [id])
+  startDate       DateTime
+  endDate         DateTime
+  rentAmount      Decimal     @db.Decimal(10, 2)
+  securityDeposit Decimal     @db.Decimal(10, 2)
+  dueDay          Int         @default(1) // keep between 1 and 28
+  status          LeaseStatus @default(PENDING)
+  payments        Payment[]
+
+  @@index([tenantId])
+  @@index([unitId, status])
+}
+
+model Payment {
+  id              String        @id @default(cuid())
+  leaseId         String
+  lease           Lease         @relation(fields: [leaseId], references: [id])
+  amount          Decimal       @db.Decimal(10, 2)
+  periodMonth     DateTime      // first day of the month this charge covers
+  dueDate         DateTime
+  paidAt          DateTime?
+  method          String?
+  status          PaymentStatus @default(PENDING)
+  stripeSessionId String?       @unique
+  createdAt       DateTime      @default(now())
+
+  @@unique([leaseId, periodMonth])
+  @@index([status, dueDate])
+}
+
+model MaintenanceRequest {
+  id          String        @id @default(cuid())
+  unitId      String
+  unit        Unit          @relation(fields: [unitId], references: [id])
+  tenantId    String
+  tenant      Tenant        @relation(fields: [tenantId], references: [id])
+  title       String
+  description String
+  photoUrl    String?
+  status      RequestStatus @default(OPEN)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([status])
+}
