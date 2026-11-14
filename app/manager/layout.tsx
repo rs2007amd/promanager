@@ -16,6 +16,8 @@ export default async function ManagerLayout({
         links={[
           { href: "/manager", label: "Dashboard" },
           { href: "/manager/properties", label: "Properties" },
+          { href: "/manager/tenants", label: "Tenants" },
+          { href: "/manager/leases", label: "Leases" },
           { href: "/manager/maintenance", label: "Maintenance" },
         ]}
       />
