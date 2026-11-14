@@ -1,3 +1,5 @@
+type Option = string | { value: string; label: string };
+
 type Props = {
   label: string;
   name: string;
@@ -5,7 +7,8 @@ type Props = {
   step?: string;
   defaultValue?: string;
   errors?: string[];
-  options?: readonly string[];
+  options?: readonly Option[];
+  required?: boolean;
 };
 
 export function FormField({
@@ -16,6 +19,7 @@ export function FormField({
   defaultValue,
   errors,
   options,
+  required = true,
 }: Props) {
   const id = `field-${name}`;
   const className = "w-full rounded border p-2";
@@ -26,12 +30,22 @@ export function FormField({
         {label}
       </label>
       {options ? (
-        <select id={id} name={name} defaultValue={defaultValue} className={className}>
-          {options.map((o) => (
-            <option key={o} value={o}>
-              {o}
-            </option>
-          ))}
+        <select
+          id={id}
+          name={name}
+          defaultValue={defaultValue}
+          required={required}
+          className={className}
+        >
+          {options.map((o) => {
+            const value = typeof o === "string" ? o : o.value;
+            const text = typeof o === "string" ? o : o.label;
+            return (
+              <option key={value} value={value}>
+                {text}
+              </option>
+            );
+          })}
         </select>
       ) : (
         <input
@@ -40,7 +54,7 @@ export function FormField({
           type={type}
           step={step}
           defaultValue={defaultValue}
-          required
+          required={required}
           className={className}
         />
       )}
