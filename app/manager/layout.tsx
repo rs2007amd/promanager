@@ -15,6 +15,7 @@ export default async function ManagerLayout({
         userName={session.user.name}
         links={[
           { href: "/manager", label: "Dashboard" },
+          { href: "/manager/properties", label: "Properties" },
           { href: "/manager/maintenance", label: "Maintenance" },
         ]}
       />

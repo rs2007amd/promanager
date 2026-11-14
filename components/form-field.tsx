@@ -1,0 +1,54 @@
+type Props = {
+  label: string;
+  name: string;
+  type?: string;
+  step?: string;
+  defaultValue?: string;
+  errors?: string[];
+  options?: readonly string[];
+};
+
+export function FormField({
+  label,
+  name,
+  type = "text",
+  step,
+  defaultValue,
+  errors,
+  options,
+}: Props) {
+  const id = `field-${name}`;
+  const className = "w-full rounded border p-2";
+
+  return (
+    <div className="space-y-1">
+      <label htmlFor={id} className="text-sm font-medium">
+        {label}
+      </label>
+      {options ? (
+        <select id={id} name={name} defaultValue={defaultValue} className={className}>
+          {options.map((o) => (
+            <option key={o} value={o}>
+              {o}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <input
+          id={id}
+          name={name}
+          type={type}
+          step={step}
+          defaultValue={defaultValue}
+          required
+          className={className}
+        />
+      )}
+      {errors?.map((e) => (
+        <p key={e} className="text-sm text-red-600">
+          {e}
+        </p>
+      ))}
+    </div>
+  );
+}
