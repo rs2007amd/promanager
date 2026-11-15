@@ -129,11 +129,15 @@ export async function resetTenantPassword(
   const tempPassword = generateTempPassword();
   await prisma.user.update({
     where: { id: tenant.userId },
-    data: { passwordHash: await bcrypt.hash(tempPassword, 12) },
+    data: {
+      passwordHash: await bcrypt.hash(tempPassword, 12),
+      // Signs the tenant out on every device
+      sessionVersion: { increment: 1 },
+    },
   });
 
   return {
-    message: `New temporary password: ${tempPassword}  Copy it now and share it with the tenant. It is shown only once.`,
+    message: `New temporary password: ${tempPassword}  Copy it now and share it with the tenant. It is shown only once. The tenant has been signed out everywhere.`,
   };
 }
 
