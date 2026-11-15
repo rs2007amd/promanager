@@ -30,6 +30,12 @@ enum PaymentStatus {
   REFUNDED
 }
 
+enum ReminderKind {
+  BEFORE_DUE
+  ON_DUE
+  OVERDUE
+}
+
 enum RequestStatus {
   OPEN
   IN_PROGRESS
@@ -113,6 +119,7 @@ model Payment {
   status          PaymentStatus @default(PENDING)
   stripeSessionId String?       @unique
   createdAt       DateTime      @default(now())
+  reminders       ReminderLog[]
 
   @@unique([leaseId, periodMonth])
   @@index([status, dueDate])
@@ -132,4 +139,15 @@ model MaintenanceRequest {
   updatedAt   DateTime      @updatedAt
 
   @@index([status])
+}
+
+// One row per reminder email sent, so no reminder is ever sent twice
+model ReminderLog {
+  id        String       @id @default(cuid())
+  paymentId String
+  payment   Payment      @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  kind      ReminderKind
+  sentAt    DateTime     @default(now())
+
+  @@unique([paymentId, kind])
 }
