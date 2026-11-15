@@ -22,6 +22,7 @@ async function main() {
   await prisma.unit.deleteMany();
   await prisma.property.deleteMany();
   await prisma.user.deleteMany();
+  await prisma.loginAttempt.deleteMany();
 
   // Dev-only password. Never reuse it anywhere real.
   const passwordHash = await bcrypt.hash("ChangeMe123!", 12);

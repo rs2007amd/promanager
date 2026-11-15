@@ -48,8 +48,21 @@ model User {
   email        String   @unique
   passwordHash String
   role         Role     @default(TENANT)
+  // Bumped to sign the user out everywhere, for example on a password reset
+  sessionVersion Int    @default(0)
   createdAt    DateTime @default(now())
   tenant       Tenant?
+}
+
+// One row per failed sign-in, keyed by "email:<address>" or "ip:<address>".
+// Used to slow down password guessing. Rows older than a day are deleted.
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  key       String
+  createdAt DateTime @default(now())
+
+  @@index([key, createdAt])
+  @@index([createdAt])
 }
 
 model Property {

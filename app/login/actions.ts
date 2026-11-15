@@ -1,6 +1,6 @@
 "use server";
 
-import { AuthError } from "next-auth";
+import { AuthError, CredentialsSignin } from "next-auth";
 import { signIn } from "@/auth";
 
 export async function authenticate(
@@ -14,6 +14,9 @@ export async function authenticate(
       redirectTo: "/",
     });
   } catch (error) {
+    if (error instanceof CredentialsSignin && error.code === "rate_limited") {
+      return "Too many failed sign-in attempts. Please wait 15 minutes and try again.";
+    }
     if (error instanceof AuthError) {
       return error.type === "CredentialsSignin"
         ? "Invalid email or password."
