@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireManager } from "@/lib/authz";
 import { monthStart } from "@/lib/dates";
-import { dueDateFor, firstChargeMonth } from "@/lib/leases";
+import { firstCharge } from "@/lib/leases";
 import { prisma } from "@/lib/prisma";
 import { closeCheckoutSession, getStripe } from "@/lib/stripe";
 import type { FormState } from "@/lib/form-state";
@@ -93,14 +93,15 @@ export async function createLease(
       },
     });
 
-    // First rent charge: this month, or the start month for a future lease
-    const period = firstChargeMonth(d.startDate, now);
+    // First rent charge: this month, or the start month for a future lease.
+    // Prorated, and due on the start date, when the lease starts mid-month.
+    const charge = firstCharge(d, now);
     await tx.payment.create({
       data: {
         leaseId: created.id,
-        amount: d.rentAmount,
-        periodMonth: period,
-        dueDate: dueDateFor(period, d.dueDay),
+        amount: charge.amount,
+        periodMonth: charge.periodMonth,
+        dueDate: charge.dueDate,
         status: "PENDING",
       },
     });
