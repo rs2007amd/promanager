@@ -1,11 +1,9 @@
 "use server";
 
-import Stripe from "stripe";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireLeaseAccess } from "@/lib/authz";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+import { closeCheckoutSession, getStripe } from "@/lib/stripe";
 
 export async function createRentCheckout(paymentId: string) {
   const payment = await prisma.payment.findUnique({
@@ -18,6 +16,19 @@ export async function createRentCheckout(paymentId: string) {
   await requireLeaseAccess(payment.leaseId);
 
   if (payment.status === "PAID") throw new Error("Already paid");
+
+  const stripe = getStripe();
+
+  // Close the previous Checkout page first, so only one page can ever take
+  // money for this charge. If it was already paid there, stop here.
+  if (payment.stripeSessionId) {
+    const previous = await closeCheckoutSession(stripe, payment.stripeSessionId);
+    if (previous === "completed") {
+      throw new Error(
+        "Your payment for this month is already being processed. Refresh in a minute to see it."
+      );
+    }
+  }
 
   const monthLabel = payment.periodMonth.toLocaleString("en-US", {
     month: "long",
@@ -46,7 +57,8 @@ export async function createRentCheckout(paymentId: string) {
     cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/tenant/payments?status=cancelled`,
   });
 
-  // Reuse the same row for retries; the newest session replaces the old one
+  // Reuse the same row for retries. The old session is closed (above), and the
+  // webhook finds the charge by metadata.paymentId either way.
   await prisma.payment.update({
     where: { id: payment.id },
     data: { stripeSessionId: session.id, status: "PENDING" },
