@@ -62,7 +62,7 @@ Copy the `whsec_...` secret it prints into `STRIPE_WEBHOOK_SECRET`.
 | `STRIPE_SECRET_KEY` | Stripe secret key (test or live) |
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob token for photo uploads |
-| `CRON_SECRET` | Protects the monthly rent-generation endpoint |
+| `CRON_SECRET` | Protects the scheduled jobs (rent, lease expiry, reminders). Required, at least 16 characters; without it every cron request is refused |
 
 Never commit `.env`. Only `.env.example` (with empty values) belongs in Git.
 

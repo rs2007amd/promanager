@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
+import { isCronAuthorized } from "@/lib/cron-auth";
 import { sendReminders } from "@/lib/send-reminders";
 
 export async function GET(req: Request) {
-  // Vercel sends this header automatically when CRON_SECRET is set
-  if (req.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isCronAuthorized(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
