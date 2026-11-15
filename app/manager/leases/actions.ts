@@ -7,6 +7,7 @@ import { requireManager } from "@/lib/authz";
 import { monthStart } from "@/lib/dates";
 import { dueDateFor, firstChargeMonth } from "@/lib/leases";
 import { prisma } from "@/lib/prisma";
+import { closeCheckoutSession, getStripe } from "@/lib/stripe";
 import type { FormState } from "@/lib/form-state";
 import { PAYMENT_METHODS, leaseSchema } from "@/lib/validation/tenant-lease";
 
@@ -152,16 +153,37 @@ export async function markPaymentPaid(
 
   const payment = await prisma.payment.findUnique({
     where: { id: paymentId },
-    select: { leaseId: true, status: true },
+    select: { leaseId: true, status: true, stripeSessionId: true },
   });
   if (!payment) return { error: "Charge not found." };
   if (payment.status === "PAID") return { error: "Already marked as paid." };
 
-  await prisma.payment.update({
-    where: { id: paymentId },
+  // If the tenant has a Stripe Checkout page open for this charge, close it
+  // first so they can't also pay online. Charges with no Checkout session
+  // (always the case before Stripe is set up) skip this.
+  if (payment.stripeSessionId) {
+    let checkout: "closed" | "completed";
+    try {
+      checkout = await closeCheckoutSession(getStripe(), payment.stripeSessionId);
+    } catch {
+      return { error: "Couldn't reach Stripe to check for an online payment. Try again." };
+    }
+    if (checkout === "completed") {
+      refresh(payment.leaseId);
+      return {
+        error:
+          "The tenant has already paid this online. It will show as paid once Stripe confirms it.",
+      };
+    }
+  }
+
+  // Only marks it if a Stripe payment didn't land in the meantime
+  const updated = await prisma.payment.updateMany({
+    where: { id: paymentId, status: { not: "PAID" } },
     data: { status: "PAID", paidAt: new Date(), method: method.data },
   });
 
   refresh(payment.leaseId);
+  if (updated.count === 0) return { error: "Already marked as paid." };
   return { ok: true };
 }
