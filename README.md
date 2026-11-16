@@ -119,3 +119,5 @@ Never commit `.env`. Only `.env.example` (with empty values) belongs in Git.
 ## License
 
 Add a `LICENSE` file (for example MIT) before sharing the code publicly.
+
+Deployed on Vercel.
